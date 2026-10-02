@@ -1,0 +1,229 @@
+{
+  "info": {
+    "_postman_id": "f8db485c-6271-48c1-a2a4-49c56da6f258",
+    "name": "Common Goods API",
+    "description": "Requests for the Common Goods shop API. Start the app with the demo profile (`.\\gradlew.bat bootRun --args='--spring.profiles.active=demo'`) or start MySQL and run it normally. The default baseUrl is http://localhost:8080. Run List products first to populate productId, then Place order to create a demo order. Checkout does not collect payment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "description": "List active products. Saves the first product's ID as productId for the product details and checkout requests."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns a list of products', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const products = pm.response.json();",
+                  "    pm.expect(products).to.be.an('array').that.is.not.empty;",
+                  "    pm.expect(products[0]).to.have.property('id');",
+                  "    pm.collectionVariables.set('productId', String(products[0].id));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?q=mug",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "mug"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Search returns matching products', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter products by category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?category=Home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Home"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns products from the selected category', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.response.json().forEach(function (product) {",
+                  "        pm.expect(product.category.toLowerCase()).to.eql('home');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get product details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{productId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns the selected product', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(String(pm.response.json().id)).to.eql(pm.collectionVariables.get('productId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Place order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Taylor Example\",\n  \"email\": \"taylor@example.com\",\n  \"shippingAddress\": \"12 Garden Lane\",\n  \"items\": [\n    {\n      \"productId\": {{productId}},\n      \"quantity\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "Places a demo order and reduces the selected product's stock. Re-running the request creates another order."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Creates an order', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const order = pm.response.json();",
+                  "    pm.expect(order.status).to.eql('PLACED');",
+                  "    pm.expect(order.items).to.be.an('array').that.is.not.empty;",
+                  "    pm.collectionVariables.set('orderId', String(order.id));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
